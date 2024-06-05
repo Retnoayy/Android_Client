@@ -3,12 +3,13 @@ package com.retno.android_client;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -32,7 +33,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         RecyclerView recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        userAdapter = new UserAdapter(userList);
+        userAdapter = new UserAdapter(userList, this); // Menambahkan context
         recyclerView.setAdapter(userAdapter);
         findViewById(R.id.button_add).setOnClickListener(v -> showAddUserDialog());
         fetchUsers();
@@ -89,6 +90,78 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void updateUser(int id, String name, String email, String ttl, String alamat, String zodiac, String jk) {
+        ApiService apiService = ApiClient.getClient().create(ApiService.class);
+        User user = new User(id, name, email, ttl, alamat, zodiac, jk);
+        Call<Void> call = apiService.updateUser(user);
+        Log.d("MainActivity", "Updating user: " + id + ", " + name + ", " + email + ", " + ttl + ", " + alamat + ", " + zodiac + ", " + jk);
+        call.enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
+                if (response.isSuccessful()) {
+                    Log.d("MainActivity", "User updated successfully");
+                    Toast.makeText(MainActivity.this, "User updated successfully", Toast.LENGTH_SHORT).show();
+                    fetchUsers();
+                } else {
+                    Log.e("MainActivity", "Response error: " + response.errorBody().toString());
+                    Toast.makeText(MainActivity.this, "Failed to update user: " + response.message(),
+                            Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Void> call, Throwable t) {
+                Log.e("MainActivity", "Fetch error: ", t);
+                Toast.makeText(MainActivity.this, "Failed to update user: " + t.getMessage(),
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    public void showUpdateDialog(final User user) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Update User");
+        View viewInflated = LayoutInflater.from(this).inflate(R.layout.dialog_update_user, (ViewGroup)
+                findViewById(android.R.id.content), false);
+        final EditText inputName = viewInflated.findViewById(R.id.editTextName);
+        final EditText inputEmail = viewInflated.findViewById(R.id.editTextEmail);
+        final EditText inputTtl = viewInflated.findViewById(R.id.editTextTtl);
+        final EditText inputAlamat = viewInflated.findViewById(R.id.editTextAlamat);
+        final EditText inputZodiac = viewInflated.findViewById(R.id.editTextZodiac);
+        final RadioGroup radioGroupjk = viewInflated.findViewById(R.id.radioGroupjk);
+
+        inputName.setText(user.getName());
+        inputEmail.setText(user.getEmail());
+        inputTtl.setText(user.getTtl());
+        inputAlamat.setText(user.getAlamat());
+        inputZodiac.setText(user.getZodiac());
+
+        builder.setView(viewInflated);
+        builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+                String name = inputName.getText().toString();
+                String email = inputEmail.getText().toString();
+                String ttl = inputTtl.getText().toString();
+                String alamat = inputAlamat.getText().toString();
+                String zodiac = inputZodiac.getText().toString();
+                int selectedId = radioGroupjk.getCheckedRadioButtonId();
+                RadioButton radioButton = viewInflated.findViewById(selectedId);
+                String jk = radioButton.getText().toString();
+
+                updateUser(user.getId(), name, email, ttl, alamat, zodiac, jk);
+            }
+        });
+        builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+        builder.show();
+    }
+
     private void fetchUsers() {
         ApiService apiService = ApiClient.getClient().create(ApiService.class);
         Call<List<User>> call = apiService.getUsers();
@@ -105,7 +178,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<List<User>> call, Throwable t) {
                 Toast.makeText(MainActivity.this, "Failed to fetch users", Toast.LENGTH_SHORT).show();
-                Log.e("wwwwwttttt", " "+t);//untuk mempermudah mencari error di logcat
+                Log.e("MainActivity", "Fetch error: ", t);
             }
         });
     }
