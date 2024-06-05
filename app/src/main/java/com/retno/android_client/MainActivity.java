@@ -34,6 +34,7 @@ public class MainActivity extends AppCompatActivity {
         RecyclerView recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         userAdapter = new UserAdapter(userList, this); // Menambahkan context
+        userAdapter.setMainActivity(this); // Mengatur MainActivity di UserAdapter
         recyclerView.setAdapter(userAdapter);
         findViewById(R.id.button_add).setOnClickListener(v -> showAddUserDialog());
         fetchUsers();
@@ -89,6 +90,8 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
+    //----------------------------UPDATE---------------------------------
 
     private void updateUser(int id, String name, String email, String ttl, String alamat, String zodiac, String jk) {
         ApiService apiService = ApiClient.getClient().create(ApiService.class);
@@ -181,5 +184,10 @@ public class MainActivity extends AppCompatActivity {
                 Log.e("MainActivity", "Fetch error: ", t);
             }
         });
+    }
+
+    // Metode untuk menyegarkan data setelah operasi update atau delete
+    public void refreshData() {
+        fetchUsers();
     }
 }
